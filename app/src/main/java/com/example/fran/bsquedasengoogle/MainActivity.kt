@@ -12,11 +12,13 @@ import android.widget.EditText
 import android.os.StrictMode
 import android.util.Log
 import android.view.View
+import android.app.ProgressDialog
+import android.os.AsyncTask
 
 class MainActivity : AppCompatActivity() {
 
-    private var entrada: EditText? = null
-    private var salida: TextView? = null
+    var entrada: EditText? = null
+    var salida: TextView? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -24,9 +26,10 @@ class MainActivity : AppCompatActivity() {
 
         entrada = findViewById<View>(R.id.EditText01) as EditText?
         salida = findViewById<View>(R.id.TextView01) as TextView?
-        StrictMode.setThreadPolicy(StrictMode.ThreadPolicy.Builder().permitNetwork().build())
+        //StrictMode.setThreadPolicy(StrictMode.ThreadPolicy.Builder().permitNetwork().build())
     }
 
+    /*
     fun buscar(view: View) {
         try {
             val palabras = entrada!!.getText().toString()
@@ -38,8 +41,14 @@ class MainActivity : AppCompatActivity() {
             Log.e("HTTP", e.message, e)
         }
     }
+    */
 
-    @Throws(Exception::class)
+    fun buscar(view: View) {
+        val palabras = entrada!!.getText().toString()
+        salida!!.append(palabras + "--")
+        BuscarGoogle().execute(palabras)
+    }
+
     private fun resultadosGoogle(palabras: String): String {
         var pagina = ""
         var devuelve = ""
@@ -71,4 +80,37 @@ class MainActivity : AppCompatActivity() {
         return devuelve
     }
 
+    inner class BuscarGoogle : AsyncTask<String, Void, String>() {
+
+        private var progreso: ProgressDialog? = null
+
+        override fun onPreExecute() {
+            progreso = ProgressDialog(this@MainActivity)
+            progreso!!.setProgressStyle(ProgressDialog.STYLE_SPINNER)
+            progreso!!.setMessage("Accediendo a Google...")
+            progreso!!.setCancelable(false)
+            progreso!!.show()
+        }
+
+        override fun doInBackground(vararg palabras: String): String? {
+            try {
+                return resultadosGoogle(palabras[0])
+            }
+            catch (e: Exception) {
+                cancel(true)
+                Log.e("HTTP", e.message, e)
+                return null
+            }
+        }
+
+        override fun onPostExecute(res: String) {
+            progreso!!.dismiss()
+            salida!!.append(res + "\n")
+        }
+
+        override fun onCancelled() {
+            progreso!!.dismiss()
+            salida!!.append("Error al conectar\n")
+        }
+    }
 }
